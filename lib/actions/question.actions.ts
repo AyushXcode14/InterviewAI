@@ -11,7 +11,7 @@ export async function saveQuestions(
 ) {
   const interviewQuestions = Array.isArray(questionsData)
     ? questionsData
-    : questionsData?.interviewQuestions;
+    : questionsData?.interviewQuestions || questionsData?.questions;
 
   if (!Array.isArray(interviewQuestions)) {
     console.error(

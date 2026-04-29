@@ -25,6 +25,7 @@ const defaultResumeData = {
 const Home: React.FC = () => {
   const [resumeData, setResumeData] = useState(defaultResumeData);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Function to handle file upload completion
   const handleUploadComplete = async (response: string) => {
@@ -52,12 +53,16 @@ const Home: React.FC = () => {
         }
           Never miss summary skills name feild`);
       
-        const parsedData = JSON.parse(result.response.text());
+        const resultText = result.response.text();
+        const cleanedText = resultText.replace(/```(?:json)?/gi, "").trim();
+        const parsedData = JSON.parse(cleanedText);
     
         // Update resumeData state with parsed data
         setResumeData(parsedData);
-      } catch (error) {
+        setErrorMsg(null);
+      } catch (error: any) {
         console.error("Error parsing response:", error);
+        setErrorMsg(error.message || String(error));
     }finally {
       setIsLoading(false);
     }
@@ -69,6 +74,11 @@ const Home: React.FC = () => {
       {isLoading && (
         <div className="w-full bg-blue-500 text-white text-center py-2">
           Loading...
+        </div>
+      )}
+      {errorMsg && (
+        <div className="w-full bg-red-500 text-white text-center py-2">
+          Error: {errorMsg}
         </div>
       )}
       <div className='w-96'>

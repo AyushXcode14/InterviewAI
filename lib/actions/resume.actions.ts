@@ -30,7 +30,7 @@ export async function saveResume(
       .insert(users)
       .values({
         id: userId,
-        email: resumeData.email, // if email is nullable it's still fine
+        email: `${userId}@dummy.com`, // Guarantee uniqueness to prevent crashes
       })
       .onConflictDoNothing({ target: users.id });
 
@@ -70,6 +70,6 @@ export async function saveResume(
     return savedResume[0];
   } catch (error) {
     console.error("Error saving resume:", error);
-    throw new Error("Failed to save resume");
+    throw new Error(`Failed to save resume: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

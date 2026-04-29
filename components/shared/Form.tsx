@@ -49,7 +49,11 @@ const Form: React.FC<FormProps> = ({ resumeData }) => {
   const [numberOfQuestions, setNumberOfQuestions] = useState(5);
 
   useEffect(() => {
-    setFormData({ ...resumeData });
+    setFormData({ 
+      ...resumeData,
+      skills: resumeData.skills || [],
+      projects: resumeData.projects || []
+    });
   }, [resumeData]);
 
   const handleEditToggle = (field: keyof typeof editMode) => {
@@ -122,37 +126,62 @@ const Form: React.FC<FormProps> = ({ resumeData }) => {
       return;
     }  
     setIsLoading(true);
-    const savedResume = await saveResume(formData,userId || ""); 
-    const resumeId = savedResume.id;
-    const sessionId = uuidv4();
-    //console.log('Resume saved with ID:', resumeId);
-    const resumeDetails = `
-    Name: ${formData.name}
-    Email: ${formData.email}
-    Phone: ${formData.phone}
-    Address: ${formData.address}
-    Education: ${formData.education}
-    Experience: ${formData.experience}
-    Skills: ${formData.skills.join(', ')}
-    Summary: ${formData.summary}
-    Certifications: ${formData.certifications}
-    Projects: ${formData.projects.map(project => `Title: ${project.title}, Description: ${project.description}`).join('; ')}
-  `;
-    const result = await AichatSession.sendMessage(
-    `Generate a set of always new mock interview questions based on the resume details provided below.
-    Resume Details: ${resumeDetails}
-    The questions should cover a range of areas, including complex technical topics, problems, scenarios, and general questions, similar to those used in Google interviews. 
-    The difficulty level of the questions should be ${difficulty}, 
-    and the total number of questions to be generated is ${numberOfQuestions}.
-    Please include problem-solving approaches similar to those found on platforms like LeetCode, and questions available on other platforms.`
-      );
-    const parsedData = result.response.text();
-    console.log("Question : ",parsedData);
-    await saveQuestions(JSON.parse(parsedData), resumeId, sessionId,difficulty,userId || "");
-   //console.log('Questions:',ResponseForSavedQuestion);
-   console.log('Questions:', parsedData);
-   setIsLoading(false);
-   route.push(`/interview/${sessionId}`);
+    try {
+      const savedResume = await saveResume(formData,userId || ""); 
+      const resumeId = savedResume.id;
+      const sessionId = uuidv4();
+      
+      const resumeDetails = `
+      Name: ${formData.name}
+      Email: ${formData.email}
+      Phone: ${formData.phone}
+      Address: ${formData.address}
+      Education: ${formData.education}
+      Experience: ${formData.experience}
+      Skills: ${formData.skills.join(', ')}
+      Summary: ${formData.summary}
+      Certifications: ${formData.certifications}
+      Projects: ${formData.projects.map(project => `Title: ${project.title}, Description: ${project.description}`).join('; ')}
+    `;
+      const result = await AichatSession.sendMessage(
+      `Generate a set of always new mock interview questions based on the resume details provided below.
+      Resume Details: ${resumeDetails}
+      The questions should cover a range of areas, including complex technical topics, problems, scenarios, and general questions, similar to those used in Google interviews. 
+      The difficulty level of the questions should be ${difficulty}, 
+      and the total number of questions to be generated is ${numberOfQuestions}.
+      Please include problem-solving approaches similar to those found on platforms like LeetCode, and questions available on other platforms.
+      Please return the output STRICTLY in JSON format without any markdown formatting.
+      The output MUST be a JSON array of objects, where each object has these exact keys: "question", "difficulty", "category", and "hint".
+      Example: [{"question": "...", "difficulty": "...", "category": "...", "hint": "..."}]`
+        );
+      
+      const resultText = result.response.text();
+      console.log("Question (raw): ", resultText);
+      let cleanedText = resultText.replace(/```(?:json)?/gi, "").trim();
+      
+      const firstBrace = cleanedText.indexOf('[');
+      const firstCurly = cleanedText.indexOf('{');
+      const firstIndex = firstBrace !== -1 && firstCurly !== -1 ? Math.min(firstBrace, firstCurly) : Math.max(firstBrace, firstCurly);
+      
+      const lastBrace = cleanedText.lastIndexOf(']');
+      const lastCurly = cleanedText.lastIndexOf('}');
+      const lastIndex = Math.max(lastBrace, lastCurly);
+
+      if (firstIndex !== -1 && lastIndex !== -1) {
+        cleanedText = cleanedText.substring(firstIndex, lastIndex + 1);
+      }
+
+      const parsedQuestions = JSON.parse(cleanedText);
+
+      await saveQuestions(parsedQuestions, resumeId, sessionId,difficulty,userId || "");
+      console.log('Questions parsed successfully.');
+      setIsLoading(false);
+      route.push(`/interview/${sessionId}`);
+    } catch (error) {
+      console.error("Error generating or saving questions:", error);
+      alert(`Error generating questions: ${error instanceof Error ? error.message : String(error)}`);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -166,12 +195,12 @@ const Form: React.FC<FormProps> = ({ resumeData }) => {
                 <Input
                   type="text"
                   name={field}
-                  value={formData[field as keyof ResumeData] as string}
+                  value={(formData[field as keyof ResumeData] as string) || ''}
                   onChange={handleChange}
                   className="w-3/4 p-2 border border-gray-700 rounded"
                 />
               ) : (
-                <span className="w-3/4 p-2 border border-gray-700 rounded">{formData[field as keyof ResumeData] as string}</span>
+                <span className="w-3/4 p-2 border border-gray-700 rounded">{(formData[field as keyof ResumeData] as string) || ''}</span>
               )}
               <Button
                 type="button"
