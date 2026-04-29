@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import FileUpload from '@/components/shared/FileUpload';
 import Form from '@/components/shared/Form';
-import { AichatSession } from '@/config/AIModal';
+import { generateAIResponse } from '@/lib/actions/ai.actions';
 
 // Define default resume data
 const defaultResumeData = {
@@ -32,8 +32,8 @@ const Home: React.FC = () => {
     try {
     //  console.log(response);
       setIsLoading(true);
-      // Assuming AichatSession.sendMessage returns JSON string
-      const result = await AichatSession.sendMessage(`Please convert the following parsed text into a JSON format with the specified structure:
+      // Assuming generateAIResponse returns JSON string
+      const resultText = await generateAIResponse(`Please convert the following parsed text into a JSON format with the specified structure:
         ${response}
         Desired JSON Format:
         {
@@ -53,7 +53,6 @@ const Home: React.FC = () => {
         }
           Never miss summary skills name feild`);
       
-        const resultText = result.response.text();
         const cleanedText = resultText.replace(/```(?:json)?/gi, "").trim();
         const parsedData = JSON.parse(cleanedText);
     

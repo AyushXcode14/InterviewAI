@@ -1,7 +1,7 @@
 "use client";
 import QuestionSection from "@/components/shared/QuestionSection";
 import RecordAnswerSection from "@/components/shared/RecordAnswerSection";
-import { AichatSession } from "@/config/AIModal";
+import { generateAIResponse } from "@/lib/actions/ai.actions";
 import { saveResponses } from "@/lib/actions/saveresponse.actions";
 import React, { useEffect, useState } from "react";
 
@@ -25,7 +25,7 @@ const StartInterview = ({ params }: { params: { interviewId: string } }) => {
   const endInterview = async () => {
     setIsLoading(true);
     try {
-      const result = await AichatSession.sendMessage(
+      const resultText = await generateAIResponse(
         `For each of the following questions and user answers, provide the following in JSON format:
       1. If a user answer is provided, give:
           - A rating (Excellent, Good, Average, Below Average, Poor)
@@ -58,7 +58,7 @@ const StartInterview = ({ params }: { params: { interviewId: string } }) => {
       ]
       `
       );
-      const response = JSON.parse(result.response.text());
+      const response = JSON.parse(resultText);
       //console.log(response);
       await saveResponses(response, questionid);
       console.log("Answers saved successfully.", answers);

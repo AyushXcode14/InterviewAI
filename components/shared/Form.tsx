@@ -6,7 +6,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-import { AichatSession } from '@/config/AIModal';
+import { generateAIResponse } from '@/lib/actions/ai.actions';
 import { saveResume } from '@/lib/actions/resume.actions';
 import { saveQuestions } from '@/lib/actions/question.actions';
 import { useUser } from '@clerk/nextjs';
@@ -143,7 +143,7 @@ const Form: React.FC<FormProps> = ({ resumeData }) => {
       Certifications: ${formData.certifications}
       Projects: ${formData.projects.map(project => `Title: ${project.title}, Description: ${project.description}`).join('; ')}
     `;
-      const result = await AichatSession.sendMessage(
+      const resultText = await generateAIResponse(
       `Generate a set of always new mock interview questions based on the resume details provided below.
       Resume Details: ${resumeDetails}
       The questions should cover a range of areas, including complex technical topics, problems, scenarios, and general questions, similar to those used in Google interviews. 
@@ -155,7 +155,6 @@ const Form: React.FC<FormProps> = ({ resumeData }) => {
       Example: [{"question": "...", "difficulty": "...", "category": "...", "hint": "..."}]`
         );
       
-      const resultText = result.response.text();
       console.log("Question (raw): ", resultText);
       let cleanedText = resultText.replace(/```(?:json)?/gi, "").trim();
       
